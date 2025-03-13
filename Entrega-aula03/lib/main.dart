@@ -26,13 +26,10 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
-  String? _codigo;
-  String? _descricao;
-  double? _valor;
+  double? _celsiu;
+  double? _farenheight;
 
-  final TextEditingController _codigoController = TextEditingController();
-  final TextEditingController _descricaoController = TextEditingController();
-  final TextEditingController _valorController = TextEditingController();
+  final TextEditingController _celsiuController = TextEditingController();
 
   @override
   void initState() {
@@ -40,36 +37,35 @@ class _MyAppState extends State<MyApp> {
     _getDados();
   }
 
-  // Função para pegar os dados do Firebase
   Future<void> _getDados() async {
     final event = await _database.child('produto').once();
     final data = event.snapshot.value as Map<dynamic, dynamic>?;
 
     setState(() {
-      _codigo = data?['codigo']?.toString();
-      _descricao = data?['descricao']?.toString();
-      _valor =
-          data?['valor'] != null
-              ? double.tryParse(data?['valor'].toString() ?? '0')
+      _celsiu =
+          data?['celsiu'] != null
+              ? double.tryParse(data?['celsiu'].toString() ?? '0')
+              : null;
+      _farenheight =
+          data?['farenheight'] != null
+              ? double.tryParse(data?['farenheight'].toString() ?? '0')
               : null;
     });
   }
 
-  // Função para atualizar os dados no Firebase
-  Future<void> _atualizarDados() async {
-    if (_codigoController.text.isNotEmpty &&
-        _descricaoController.text.isNotEmpty &&
-        _valorController.text.isNotEmpty) {
+  // Função para calcular e atualizar os dados no Firebase
+  Future<void> _calcular() async {
+    if (_celsiuController.text.isNotEmpty) {
+      double celsius = double.tryParse(_celsiuController.text) ?? 0.0;
+      double fahrenheit = (celsius * 9 / 5) + 32;
+
       await _database.child('produto').set({
-        'codigo': _codigoController.text,
-        'descricao': _descricaoController.text,
-        'valor': double.tryParse(_valorController.text) ?? 0.0,
+        'celsiu': celsius,
+        'farenheight': fahrenheit,
       });
 
       _getDados();
-      _codigoController.clear();
-      _descricaoController.clear();
-      _valorController.clear();
+      _celsiuController.clear();
     }
   }
 
@@ -77,51 +73,38 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: const Text("Produto no Firebase")),
+        appBar: AppBar(title: const Text("Conversor Celsius para Fahrenheit")),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _codigo == null || _descricao == null || _valor == null
+              _celsiu == null || _farenheight == null
                   ? const CircularProgressIndicator()
                   : Column(
                     children: [
-                      Text("Código: $_codigo"),
-                      Text("Descrição: $_descricao"),
-                      Text("Valor: $_valor"),
+                      const Text(
+                        "ultima conversão:",
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      Text("Celsius: $_celsiu"),
+                      Text("Fahrenheit: $_farenheight"),
                     ],
                   ),
               const SizedBox(height: 20),
               TextField(
-                controller: _codigoController,
-                decoration: const InputDecoration(
-                  labelText: "Código",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _descricaoController,
-                decoration: const InputDecoration(
-                  labelText: "Descrição",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _valorController,
-                decoration: const InputDecoration(
-                  labelText: "Valor",
-                  border: OutlineInputBorder(),
-                ),
+                controller: _celsiuController,
                 keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: "Celsius",
+                  border: OutlineInputBorder(),
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
               ElevatedButton(
-                onPressed: _atualizarDados,
-                child: const Text("Atualizar Dados"),
+                onPressed: _calcular,
+                child: const Text("Calcular"),
               ),
             ],
           ),
